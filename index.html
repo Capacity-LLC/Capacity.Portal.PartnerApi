@@ -4,9 +4,9 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src data:; base-uri 'none'; form-action 'none'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self'; base-uri 'none'; form-action 'none'">
   <title>Capacity Partner API</title>
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 28 28'%3E%3Crect width='28' height='28' rx='6' fill='%23FF9933'/%3E%3Cpath d='M19.5 8.2c-1-.9-2.3-1.5-3.7-1.5-3 0-5.5 2.5-5.5 5.5v5.6c0 3 2.5 5.5 5.5 5.5 1.4 0 2.7-.6 3.7-1.5' stroke='%23fff' stroke-width='2.4' stroke-linecap='round' fill='none'/%3E%3C/svg%3E">
+  <link rel="icon" type="image/png" href="favicon.png">
   <style>
     :root {
       --brand: #FF9933;
@@ -16,16 +16,6 @@
       --text-secondary: #52525B;
       --border: #E4E4E7;
       --link: #1570EF;
-    }
-    @media (prefers-color-scheme: dark) {
-      :root {
-        --bg-page: #09090B;
-        --bg-surface: #18181B;
-        --text-primary: #FAFAFA;
-        --text-secondary: #D4D4D8;
-        --border: #3F3F46;
-        --link: #84CAFF;
-      }
     }
     * { box-sizing: border-box; }
     body {
@@ -47,7 +37,7 @@
       border-radius: 8px;
       padding: 32px 24px;
     }
-    .brand { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; font-weight: 700; }
+    .brand { margin-bottom: 24px; } .brand img { display: block; height: 40px; width: auto; }
     .eyebrow {
       font-size: 11px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase;
       color: var(--brand); margin: 0 0 8px;
@@ -59,10 +49,7 @@
 </head>
 <body>
   <main>
-    <div class="brand">
-      <svg width="28" height="28" viewBox="0 0 28 28" aria-hidden="true"><rect width="28" height="28" rx="6" fill="#FF9933"/><path d="M19.5 8.2c-1-.9-2.3-1.5-3.7-1.5-3 0-5.5 2.5-5.5 5.5v5.6c0 3 2.5 5.5 5.5 5.5 1.4 0 2.7-.6 3.7-1.5" stroke="#fff" stroke-width="2.4" stroke-linecap="round" fill="none"/></svg>
-      <span>Capacity</span>
-    </div>
+    <div class="brand"><img src="capacity-logo.png" alt="Capacity" height="40"></div>
     <p class="eyebrow">Coming soon</p>
     <h1>Capacity Partner API documentation</h1>
     <p>Guides, a quickstart and a full API reference for integrating with Capacity fulfillment are on the way.</p>

@@ -1,0 +1,4393 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Capacity Partner API",
+    "version": "v1",
+    "contact": {
+      "name": "Capacity IT EDI Integrations",
+      "email": "itedi@capacityllc.com"
+    },
+    "description": "The Capacity Partner API: send outbound orders, track shipments, send inbound (receiving) orders and read inventory held in Capacity fulfillment centers. Documentation: https://partner-docs.capacityllc.com"
+  },
+  "servers": [
+    {
+      "url": "https://uat-api-partner.capacityllc.com",
+      "description": "Sandbox: test data, sandbox credentials"
+    },
+    {
+      "url": "https://api-partner.capacityllc.com",
+      "description": "Production: live orders, production credentials"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Authentication"
+    },
+    {
+      "name": "Connection"
+    },
+    {
+      "name": "Outbound orders"
+    },
+    {
+      "name": "Shipments"
+    },
+    {
+      "name": "Inbound orders"
+    },
+    {
+      "name": "Inventory"
+    }
+  ],
+  "paths": {
+    "/api/v1/auth/token": {
+      "post": {
+        "operationId": "Token",
+        "summary": "Get an access token",
+        "description": "Exchange your client ID and secret for a bearer token. Send it as `Authorization: Bearer <token>` on every other call. Tokens last about 15 minutes; `expires_in` in the response gives the exact number of seconds.\n\n**Form post, not JSON.** Send `grant_type=client_credentials` with your `client_id` and `client_secret`, either as form fields or as an HTTP Basic `Authorization` header (`client_id:client_secret`, base64). If both are present, the header is used. Secrets are case-sensitive.\n\n**Reuse the token.** It lasts about 15 minutes (`expires_in`, in seconds). Cache it and request a new one shortly before it expires; do not request a token per call.\n\n**Errors use the OAuth shape**, not `{\"message\": ...}`: `400 {\"error\": \"invalid_credentials\", \"error_description\": ...}`, `400 {\"error\": \"unsupported_grant_type\"}`, and `503 {\"error\": \"temporarily_unavailable\", \"error_description\": ...}` when the token service is briefly unavailable (retry with backoff).",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "required": [
+                  "grant_type",
+                  "client_id",
+                  "client_secret"
+                ],
+                "type": "object",
+                "properties": {
+                  "grant_type": {
+                    "enum": [
+                      "client_credentials"
+                    ],
+                    "type": "string",
+                    "default": "client_credentials"
+                  },
+                  "client_id": {
+                    "type": "string"
+                  },
+                  "client_secret": {
+                    "type": "string",
+                    "format": "password"
+                  }
+                }
+              },
+              "example": {
+                "grant_type": "client_credentials",
+                "client_id": "YOUR_SANDBOX_CLIENT_ID",
+                "client_secret": "YOUR_SANDBOX_CLIENT_SECRET"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerApiTokenSuccessResponse"
+                },
+                "example": {
+                  "access_token": "eyJhbGciOiJSUzI1NiJ9.EXAMPLE-ONLY.signature",
+                  "token_type": "bearer",
+                  "expires_in": 899,
+                  ".issued": "Mon, 02 Nov 2026 14:00:00 GMT",
+                  ".expires": "Mon, 02 Nov 2026 14:14:59 GMT"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerApiTokenErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerApiTokenErrorResponse"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "X-Correlation-ID",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Optional. A unique ID for this request (a UUID). It is echoed back on the response; log it and quote it when you contact support. If you omit it, one is generated and returned.",
+            "example": "6f1c2a9e-3b7d-4c55-9a10-2f8e4d1b7c3a"
+          }
+        ],
+        "security": [],
+        "tags": [
+          "Authentication"
+        ]
+      }
+    },
+    "/api/v1/ping": {
+      "get": {
+        "operationId": "Ping",
+        "summary": "Test your connection",
+        "description": "Returns \"Connection is successful.\" when your token is valid. Use it to check setup before sending data.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string"
+                },
+                "example": "Connection is successful."
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerApiMessageResponse"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "X-Correlation-ID",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Optional. A unique ID for this request (a UUID). It is echoed back on the response; log it and quote it when you contact support. If you omit it, one is generated and returned.",
+            "example": "6f1c2a9e-3b7d-4c55-9a10-2f8e4d1b7c3a"
+          }
+        ],
+        "security": [
+          {
+            "BearerToken": []
+          }
+        ],
+        "tags": [
+          "Connection"
+        ]
+      }
+    },
+    "/api/v1/outbound/orders": {
+      "post": {
+        "operationId": "OutboundOrderCreate",
+        "summary": "Submit orders",
+        "description": "Send one or more outbound orders for fulfilment. Each valid order in the request is accepted even if others fail; a 400 response names one order that failed and why (not every failure), so fix the orders that failed and resend only those.\n\n**Values are strings and names are lowercase.** Quantities, amounts and flags are all strings (`\"2\"`, not `2`). Quantities are whole numbers, digits only.\n\n**Required per order:** the fields marked required, plus `shipname` or `shipbusinessname` (at least one), and at least one line. An order with an empty `lines` array is skipped. Always send `lines`: an order sent without the field is accepted with no lines.\n\n**Defaults:** an empty or omitted `retailercode` becomes `WEB`, and empty or omitted single-character flags become `N`. A flag that is only spaces is rejected. `itemproductid`, `buyeritemnumber` and `itemproductdesc` longer than 50 characters are cut to 50 rather than rejected.\n\n**Partial acceptance:** when individual orders fail validation, every valid order in the request is still accepted, and the `400` names one failed order and its reason (not every failure). Fix and resend only the orders that failed. **Nothing is accepted** when the `400` is `Invalid Input`, `Unable to validate client.`, or `Please validate order data. ` with no detail (a `null` order or line, or no order with lines).\n\n**`500` or `504` with `{\"accepted\": false}`:** some orders may not have been accepted. Resending the same request within 24 hours is generally safe: orders already accepted with identical content are recognised and skipped. Some accounts receive `504` instead of `500`; treat them the same.\n\n**Do not retry automatically after a timeout with no response.** The orders may have been accepted in full, and this API does not return order IDs you could check. Contact Capacity Support with the time of the request, the pick tickets and the `X-Correlation-ID` you sent.\n\n**Dates** (`orderdate`, `requestedshipdate`, `canceldate`, `requesteddeliverydate`, `deliverybydate`) are read as US Eastern dates. Use `YYYY-MM-DD`. A `requestedshipdate` more than 3 days out normally holds the order as a future order until nearer the date.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateOrdersRequest"
+              },
+              "example": {
+                "orders": [
+                  {
+                    "pickticketid": "PT-0001001",
+                    "clientcode": "ZZ",
+                    "retailercode": "WEB",
+                    "shipname": "Jordan Example",
+                    "shipaddress1": "100 Example Street",
+                    "shipcity": "Edison",
+                    "shipstate": "NJ",
+                    "shipzip": "08817",
+                    "shipcountry": "US",
+                    "shipresidentialflag": "Y",
+                    "shipmethod": "GROUND",
+                    "requestedshipdate": "2026-11-09",
+                    "lines": [
+                      {
+                        "itemlinenumber": "1",
+                        "itemproductid": "SKU-EXAMPLE-1",
+                        "itemorderquantity": "1"
+                      }
+                    ]
+                  }
+                ]
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateOrdersRequest"
+              },
+              "example": {
+                "orders": [
+                  {
+                    "pickticketid": "PT-0001001",
+                    "clientcode": "ZZ",
+                    "retailercode": "WEB",
+                    "shipname": "Jordan Example",
+                    "shipaddress1": "100 Example Street",
+                    "shipcity": "Edison",
+                    "shipstate": "NJ",
+                    "shipzip": "08817",
+                    "shipcountry": "US",
+                    "shipresidentialflag": "Y",
+                    "shipmethod": "GROUND",
+                    "requestedshipdate": "2026-11-09",
+                    "lines": [
+                      {
+                        "itemlinenumber": "1",
+                        "itemproductid": "SKU-EXAMPLE-1",
+                        "itemorderquantity": "1"
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateOrdersResponse"
+                },
+                "example": {
+                  "accepted": true
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerApiMessageResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerApiMessageResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateOrdersResponse"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "Gateway Timeout",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateOrdersResponse"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "X-Correlation-ID",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Optional. A unique ID for this request (a UUID). It is echoed back on the response; log it and quote it when you contact support. If you omit it, one is generated and returned.",
+            "example": "6f1c2a9e-3b7d-4c55-9a10-2f8e4d1b7c3a"
+          }
+        ],
+        "security": [
+          {
+            "BearerToken": []
+          }
+        ],
+        "tags": [
+          "Outbound orders"
+        ]
+      }
+    },
+    "/api/v1/outbound/orders/cancel": {
+      "post": {
+        "operationId": "OutboundOrderCancel",
+        "summary": "Cancel an order",
+        "description": "Cancel an order by its pick ticket ID. This works only before the order has shipping or tracking information and while it is still open; otherwise the response says the order could not be cancelled.\n\n**Cancel by your pick ticket.** The response is `200` whenever the request is valid; read `order_cancelled` to see whether it worked.\n\n**Orders are created in the background**, usually within seconds of a successful submit. Until then, cancel answers that the order cannot be cancelled: wait a few seconds and try again.\n\n**Only open orders with no shipping or tracking information can be cancelled.** Assembly orders cannot be cancelled through the API, and cancel finds only orders placed under your own owner code (not a related account's).\n\n**If the order had already been released to the warehouse**, a successful cancel marks it \"do not ship\" in Capacity, but contact Capacity Support straight away so the warehouse can stop it.\n\n**Keep pick tickets unique.** If two open orders share one, which order is cancelled is not defined.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CancelOrderRequest"
+              },
+              "example": {
+                "pickticketid": "PT-0001001"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CancelOrderRequest"
+              },
+              "example": {
+                "pickticketid": "PT-0001001"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CancelOrderResponse"
+                },
+                "example": {
+                  "pickticketid": "PT-0001001",
+                  "order_cancelled": true,
+                  "order_cancelled_result": "Order cancelled successfully."
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerApiMessageResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerApiMessageResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerApiMessageResponse"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "X-Correlation-ID",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Optional. A unique ID for this request (a UUID). It is echoed back on the response; log it and quote it when you contact support. If you omit it, one is generated and returned.",
+            "example": "6f1c2a9e-3b7d-4c55-9a10-2f8e4d1b7c3a"
+          }
+        ],
+        "security": [
+          {
+            "BearerToken": []
+          }
+        ],
+        "tags": [
+          "Outbound orders"
+        ]
+      }
+    },
+    "/api/v1/outbound/orders/status": {
+      "post": {
+        "operationId": "OutboundOrderStatus",
+        "summary": "Get picked orders",
+        "description": "Your picked orders (status: picked, awaiting shipment) with their lines, cartons and tracking. Every order of yours that is currently picked is returned, plus the Capacity order IDs you send if they have been picked; orders belonging to related accounts (same parent client) are included. A requested ID that has not been picked, or does not exist, comes back as a \"not found\" entry; if nothing is found the response is 404.\n\n**This returns picked orders.** An order appears once it has been picked (and until it ships). Every order of yours that is currently picked is returned, **even ones you did not ask for**, plus the orders you ask for by Capacity order number (`orderIds`) if they have been picked. Orders belonging to your related accounts (same parent client) are included.\n\n**An order that exists but has not been picked yet** comes back as a \"not found\" entry. If nothing at all is found, the response is `404`. Use shipment confirmations, not this call, to learn what has shipped.\n\n`orderIds` are Capacity order numbers (as returned in `capacityOrderNum` by carrier tracking events), not your pick tickets.\n\n`orderStatusDate` and `pickedOrderStatusDate` are `YYYY-MM-DD HH:MM:SS.mmm`; `releaseDate` and `currentSLADate` are `MM/DD/YYYY`; all US Eastern with no offset.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GetPickedOrderDetailsRequest"
+              },
+              "example": {
+                "orderIds": [
+                  80000001,
+                  80000002
+                ]
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GetPickedOrderDetailsRequest"
+              },
+              "example": {
+                "orderIds": [
+                  80000001,
+                  80000002
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PickedOrderDetailsResponse"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerApiMessageResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerApiMessageResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerApiMessageResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerApiMessageResponse"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "X-Correlation-ID",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Optional. A unique ID for this request (a UUID). It is echoed back on the response; log it and quote it when you contact support. If you omit it, one is generated and returned.",
+            "example": "6f1c2a9e-3b7d-4c55-9a10-2f8e4d1b7c3a"
+          }
+        ],
+        "security": [
+          {
+            "BearerToken": []
+          }
+        ],
+        "tags": [
+          "Outbound orders"
+        ]
+      }
+    },
+    "/api/v1/outbound/orders/shipments": {
+      "post": {
+        "operationId": "OutboundShipments",
+        "summary": "Get shipment confirmations",
+        "description": "Ship confirmations for your orders for the batch number and batch date you send (both required): what shipped, order totals, carrier, service and tracking numbers.\n\n**Polling, not callbacks.** Capacity prepares ship confirmations in numbered batches each day (`batch_num` 1, 2, 3 ...). Your onboarding contact tells you how many batches your account receives per day. Request each batch for a `batch_date` after it has been prepared, and match lines to your orders by `pickticketid`.\n\n**Batch 1 starts the evening before.** Batches are keyed on when the confirmation was created (US Eastern), not the ship time. Batch 1 of a date covers confirmations created from **22:00 the previous evening**; the other batches cover the calendar date. A confirmation created at 22:30 on 2 November is in batch 1 of **3 November**.\n\n**One item per order line.** `shipDate` is ISO 8601 without an offset (US Eastern). `expiryDate` is `MM/DD/YYYY`, or empty when there is none.\n\n**No data is a 200.** When a batch has no confirmations, the response is `200 {\"message\": \"No records found. Please check input.\"}`, not an empty list. Check the body before reading it as data.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GetOrderTrackingV2Request"
+              },
+              "example": {
+                "batch_num": 1,
+                "batch_date": "2026-11-02"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GetOrderTrackingV2Request"
+              },
+              "example": {
+                "batch_num": 1,
+                "batch_date": "2026-11-02"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerApiOrderTrackingListResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerApiMessageResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerApiMessageResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerApiMessageResponse"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "X-Correlation-ID",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Optional. A unique ID for this request (a UUID). It is echoed back on the response; log it and quote it when you contact support. If you omit it, one is generated and returned.",
+            "example": "6f1c2a9e-3b7d-4c55-9a10-2f8e4d1b7c3a"
+          }
+        ],
+        "security": [
+          {
+            "BearerToken": []
+          }
+        ],
+        "tags": [
+          "Shipments"
+        ]
+      }
+    },
+    "/api/v1/outbound/orders/shipments/cartons": {
+      "post": {
+        "operationId": "OutboundShipmentCartons",
+        "summary": "Get shipment confirmations by carton",
+        "description": "The same ship confirmations as Get shipment confirmations, broken down by carton: each carton's lines, quantities, weight and tracking number. Batch number and batch date are both required.\n\nBroken down by carton: each carton's tracking number and URL, SSCC (`ucc128`), pallet and contents, plus BOL, load and appointment numbers for freight. Same batches and the same batch-1 rule as **Get shipment confirmations**; `expiryDate` is `MM/DD/YYYY`.\n\nWhen there is no data, the response is `200 {\"message\": \"No records found. Please check input.\"}`.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GetOrderTrackingV2Request"
+              },
+              "example": {
+                "batch_num": 1,
+                "batch_date": "2026-11-02"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GetOrderTrackingV2Request"
+              },
+              "example": {
+                "batch_num": 1,
+                "batch_date": "2026-11-02"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerApiCartonTrackingResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerApiMessageResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerApiMessageResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerApiMessageResponse"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "X-Correlation-ID",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Optional. A unique ID for this request (a UUID). It is echoed back on the response; log it and quote it when you contact support. If you omit it, one is generated and returned.",
+            "example": "6f1c2a9e-3b7d-4c55-9a10-2f8e4d1b7c3a"
+          }
+        ],
+        "security": [
+          {
+            "BearerToken": []
+          }
+        ],
+        "tags": [
+          "Shipments"
+        ]
+      }
+    },
+    "/api/v1/outbound/orders/shipments/tracking/events": {
+      "post": {
+        "operationId": "OutboundTrackingEvents",
+        "summary": "Get carrier tracking events",
+        "description": "Carrier scan events for your shipments (picked up, in transit, delivered, exceptions) recorded in the hour and date you send. `hour_num` is the hour of day, 0-23 (0 is midnight to 00:59); `hour_num` and `batch_date` are both required.\n\n**Poll by hour.** `hour_num` is the hour of day, 0-23, in **US Eastern time** (0 is midnight to 00:59). `batch_date` is the Eastern calendar date. Each event names the Capacity order (`capacityOrderNum`), the carrier tracking number and the scan.\n\nWhen there are no events for that hour, the response is `200 {\"message\": \"No records found. Please check input.\"}`.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GetTrackingEventsRequest"
+              },
+              "example": {
+                "hour_num": 14,
+                "batch_date": "2026-11-02"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GetTrackingEventsRequest"
+              },
+              "example": {
+                "hour_num": 14,
+                "batch_date": "2026-11-02"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerApiTrackingEventsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerApiMessageResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerApiMessageResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerApiMessageResponse"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "X-Correlation-ID",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Optional. A unique ID for this request (a UUID). It is echoed back on the response; log it and quote it when you contact support. If you omit it, one is generated and returned.",
+            "example": "6f1c2a9e-3b7d-4c55-9a10-2f8e4d1b7c3a"
+          }
+        ],
+        "security": [
+          {
+            "BearerToken": []
+          }
+        ],
+        "tags": [
+          "Shipments"
+        ]
+      }
+    },
+    "/api/v1/inbound/orders": {
+      "post": {
+        "operationId": "InboundOrderCreate",
+        "summary": "Submit receiving orders",
+        "description": "Tell us what inbound stock to expect (an ASN): PO number, expected delivery date, and SKUs with quantities, plus the lot number where your items are lot-tracked.\n\n**One element per line.** Each element of `orders` is one PO line: `clientcode`, `ponumber`, `deliverydate`, `sku` and `quantity` are required.\n\n**Send JSON.** A `Content-Type` other than `application/json` is answered `415`.\n\n**Validation accumulates:** a `400` lists every problem it found for a line, not just the first. `quantity` must be a whole number above 0. `deliverydate` must be a real date (US Eastern).\n\n`unitofmeasure`, `source`, `externalOrderId` and `rmaId` are accepted for compatibility but not used.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateReceivingOrdersRequest"
+              },
+              "example": {
+                "orders": [
+                  {
+                    "clientcode": "ZZ",
+                    "ponumber": "PO-77001",
+                    "deliverydate": "2026-11-09",
+                    "linenumber": "1",
+                    "sku": "SKU-EXAMPLE-1",
+                    "quantity": 24,
+                    "lot": "LOT-0001"
+                  }
+                ]
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateReceivingOrdersRequest"
+              },
+              "example": {
+                "orders": [
+                  {
+                    "clientcode": "ZZ",
+                    "ponumber": "PO-77001",
+                    "deliverydate": "2026-11-09",
+                    "linenumber": "1",
+                    "sku": "SKU-EXAMPLE-1",
+                    "quantity": 24,
+                    "lot": "LOT-0001"
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateReceivingOrdersResponse"
+                },
+                "example": {
+                  "accepted": true
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerApiMessageResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerApiMessageResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerApiMessageResponse"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "X-Correlation-ID",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Optional. A unique ID for this request (a UUID). It is echoed back on the response; log it and quote it when you contact support. If you omit it, one is generated and returned.",
+            "example": "6f1c2a9e-3b7d-4c55-9a10-2f8e4d1b7c3a"
+          }
+        ],
+        "security": [
+          {
+            "BearerToken": []
+          }
+        ],
+        "tags": [
+          "Inbound orders"
+        ]
+      }
+    },
+    "/api/v1/inbound/orders/confirmations": {
+      "post": {
+        "operationId": "InboundOrderConfirmations",
+        "summary": "Get receipt confirmations",
+        "description": "What was received for the batch number (required) and batch date you send: PO, line, SKU, quantity received, lot and expiry. receivedate is the time of your request, not the time of receipt.\n\n**Receipt lines for a batch.** Send `batch_num` (required, 1 or more) and `batch_date`. A missing `batch_date` is not rejected; it simply matches nothing.\n\n**`receivedate` is the time of your request, not the time the stock was received.** `expirydate` is `YYYY-MM-DD`.\n\n**No data is a 200 with a plain string:** `\"Unable to find data for given request.\"`.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RoConfirmationsRequest"
+              },
+              "example": {
+                "batch_num": 1,
+                "batch_date": "2026-11-02"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RoConfirmationsRequest"
+              },
+              "example": {
+                "batch_num": 1,
+                "batch_date": "2026-11-02"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RoConfirmationsResponse"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerApiMessageResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerApiMessageResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerApiMessageResponse"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "X-Correlation-ID",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Optional. A unique ID for this request (a UUID). It is echoed back on the response; log it and quote it when you contact support. If you omit it, one is generated and returned.",
+            "example": "6f1c2a9e-3b7d-4c55-9a10-2f8e4d1b7c3a"
+          }
+        ],
+        "security": [
+          {
+            "BearerToken": []
+          }
+        ],
+        "tags": [
+          "Inbound orders"
+        ]
+      }
+    },
+    "/api/v1/inventory": {
+      "post": {
+        "operationId": "InventorySnapshot",
+        "summary": "Get inventory",
+        "description": "Your current stock by SKU: on hand, committed and available, with price and category. Send your owner code as `client`.\n\n**Send your 2-character owner code as `client`.** It is matched exactly, including case.\n\n`inventory` is `null` (not an empty list) when there is nothing to report. The field `commited` is spelled that way in the response. `price` is a string.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InventorySnapshotRequest"
+              },
+              "example": {
+                "client": "ZZ"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InventorySnapshotRequest"
+              },
+              "example": {
+                "client": "ZZ"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InventorySnapshotResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerApiMessageResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerApiMessageResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerApiMessageResponse"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "X-Correlation-ID",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Optional. A unique ID for this request (a UUID). It is echoed back on the response; log it and quote it when you contact support. If you omit it, one is generated and returned.",
+            "example": "6f1c2a9e-3b7d-4c55-9a10-2f8e4d1b7c3a"
+          }
+        ],
+        "security": [
+          {
+            "BearerToken": []
+          }
+        ],
+        "tags": [
+          "Inventory"
+        ]
+      }
+    },
+    "/api/v1/inventory/lots-and-lpns": {
+      "post": {
+        "operationId": "InventoryLotsAndLpns",
+        "summary": "Get inventory by lot and LPN",
+        "description": "Your stock broken down by lot number, expiry date and LPN (licence plate), with total and on-hand quantities. Send your owner code as `client`.\n\n**Stock by lot, expiry and LPN** (licence plate). Send your owner code as `client`, matched exactly including case.\n\n`expiryDate` is `0001-01-01T00:00:00` when an item has no expiry date. `hold` breaks held quantity down by reason code.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InventorySnapshotRequest"
+              },
+              "example": {
+                "client": "ZZ"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InventorySnapshotRequest"
+              },
+              "example": {
+                "client": "ZZ"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InventoryLotLpnResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerApiMessageResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerApiMessageResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerApiMessageResponse"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "X-Correlation-ID",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Optional. A unique ID for this request (a UUID). It is echoed back on the response; log it and quote it when you contact support. If you omit it, one is generated and returned.",
+            "example": "6f1c2a9e-3b7d-4c55-9a10-2f8e4d1b7c3a"
+          }
+        ],
+        "security": [
+          {
+            "BearerToken": []
+          }
+        ],
+        "tags": [
+          "Inventory"
+        ]
+      }
+    },
+    "/api/order/create": {
+      "post": {
+        "operationId": "LegacyOrderCreate",
+        "summary": "Submit orders (existing integrations)",
+        "description": "Existing integrations only. New integrations must use `POST /api/v1/outbound/orders`; a new client calling this path gets 410.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateOrdersRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateOrdersRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateOrdersResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerApiMessageResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerApiMessageResponse"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Gone",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerApiMessageResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateOrdersResponse"
+                }
+              }
+            }
+          },
+          "504": {
+            "description": "Gateway Timeout",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateOrdersResponse"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "X-Correlation-ID",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Optional. A unique ID for this request (a UUID). It is echoed back on the response; log it and quote it when you contact support. If you omit it, one is generated and returned.",
+            "example": "6f1c2a9e-3b7d-4c55-9a10-2f8e4d1b7c3a"
+          }
+        ],
+        "security": [
+          {
+            "BearerToken": []
+          }
+        ],
+        "tags": [
+          "Outbound orders"
+        ],
+        "deprecated": true,
+        "servers": [
+          {
+            "url": "https://api-integration.capacityllc.com",
+            "description": "Production, existing integrations only (previous Capacity REST API address)"
+          },
+          {
+            "url": "https://api-partner.capacityllc.com",
+            "description": "Production"
+          }
+        ],
+        "x-capacity-replaced-by": {
+          "operationId": "OutboundOrderCreate",
+          "method": "POST",
+          "path": "/api/v1/outbound/orders"
+        }
+      }
+    },
+    "/api/order/cancel": {
+      "post": {
+        "operationId": "LegacyOrderCancel",
+        "summary": "Cancel an order (existing integrations)",
+        "description": "Existing integrations only. New integrations must use `POST /api/v1/outbound/orders/cancel`; a new client calling this path gets 410.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CancelOrderRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CancelOrderRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CancelOrderResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerApiMessageResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerApiMessageResponse"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Gone",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerApiMessageResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerApiMessageResponse"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "X-Correlation-ID",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Optional. A unique ID for this request (a UUID). It is echoed back on the response; log it and quote it when you contact support. If you omit it, one is generated and returned.",
+            "example": "6f1c2a9e-3b7d-4c55-9a10-2f8e4d1b7c3a"
+          }
+        ],
+        "security": [
+          {
+            "BearerToken": []
+          }
+        ],
+        "tags": [
+          "Outbound orders"
+        ],
+        "deprecated": true,
+        "servers": [
+          {
+            "url": "https://api-integration.capacityllc.com",
+            "description": "Production, existing integrations only (previous Capacity REST API address)"
+          },
+          {
+            "url": "https://api-partner.capacityllc.com",
+            "description": "Production"
+          }
+        ],
+        "x-capacity-replaced-by": {
+          "operationId": "OutboundOrderCancel",
+          "method": "POST",
+          "path": "/api/v1/outbound/orders/cancel"
+        }
+      }
+    },
+    "/api/order/status/picked": {
+      "post": {
+        "operationId": "LegacyOrderStatusPicked",
+        "summary": "Get picked orders (existing integrations)",
+        "description": "Existing integrations only. New integrations must use `POST /api/v1/outbound/orders/status`; a new client calling this path gets 410.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GetPickedOrderDetailsRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GetPickedOrderDetailsRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PickedOrderDetailsResponse"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerApiMessageResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerApiMessageResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerApiMessageResponse"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Gone",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerApiMessageResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerApiMessageResponse"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "X-Correlation-ID",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Optional. A unique ID for this request (a UUID). It is echoed back on the response; log it and quote it when you contact support. If you omit it, one is generated and returned.",
+            "example": "6f1c2a9e-3b7d-4c55-9a10-2f8e4d1b7c3a"
+          }
+        ],
+        "security": [
+          {
+            "BearerToken": []
+          }
+        ],
+        "tags": [
+          "Outbound orders"
+        ],
+        "deprecated": true,
+        "servers": [
+          {
+            "url": "https://api-integration.capacityllc.com",
+            "description": "Production, existing integrations only (previous Capacity REST API address)"
+          },
+          {
+            "url": "https://api-partner.capacityllc.com",
+            "description": "Production"
+          }
+        ],
+        "x-capacity-replaced-by": {
+          "operationId": "OutboundOrderStatus",
+          "method": "POST",
+          "path": "/api/v1/outbound/orders/status"
+        }
+      }
+    },
+    "/api/order/track": {
+      "post": {
+        "operationId": "LegacyOrderTrack",
+        "summary": "Get shipment confirmations (existing integrations)",
+        "description": "Existing integrations only. New integrations must use `POST /api/v1/outbound/orders/shipments`; a new client calling this path gets 410.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GetOrderTrackingV2Request"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GetOrderTrackingV2Request"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerApiOrderTrackingListResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerApiMessageResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerApiMessageResponse"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Gone",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerApiMessageResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerApiMessageResponse"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "X-Correlation-ID",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Optional. A unique ID for this request (a UUID). It is echoed back on the response; log it and quote it when you contact support. If you omit it, one is generated and returned.",
+            "example": "6f1c2a9e-3b7d-4c55-9a10-2f8e4d1b7c3a"
+          }
+        ],
+        "security": [
+          {
+            "BearerToken": []
+          }
+        ],
+        "tags": [
+          "Shipments"
+        ],
+        "deprecated": true,
+        "servers": [
+          {
+            "url": "https://api-integration.capacityllc.com",
+            "description": "Production, existing integrations only (previous Capacity REST API address)"
+          },
+          {
+            "url": "https://api-partner.capacityllc.com",
+            "description": "Production"
+          }
+        ],
+        "x-capacity-replaced-by": {
+          "operationId": "OutboundShipments",
+          "method": "POST",
+          "path": "/api/v1/outbound/orders/shipments"
+        }
+      }
+    },
+    "/api/order/track/cartons": {
+      "post": {
+        "operationId": "LegacyOrderTrackCartons",
+        "summary": "Get shipment confirmations by carton (existing integrations)",
+        "description": "Existing integrations only. New integrations must use `POST /api/v1/outbound/orders/shipments/cartons`; a new client calling this path gets 410.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GetOrderTrackingV2Request"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GetOrderTrackingV2Request"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerApiCartonTrackingResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerApiMessageResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerApiMessageResponse"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Gone",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerApiMessageResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerApiMessageResponse"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "X-Correlation-ID",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Optional. A unique ID for this request (a UUID). It is echoed back on the response; log it and quote it when you contact support. If you omit it, one is generated and returned.",
+            "example": "6f1c2a9e-3b7d-4c55-9a10-2f8e4d1b7c3a"
+          }
+        ],
+        "security": [
+          {
+            "BearerToken": []
+          }
+        ],
+        "tags": [
+          "Shipments"
+        ],
+        "deprecated": true,
+        "servers": [
+          {
+            "url": "https://api-integration.capacityllc.com",
+            "description": "Production, existing integrations only (previous Capacity REST API address)"
+          },
+          {
+            "url": "https://api-partner.capacityllc.com",
+            "description": "Production"
+          }
+        ],
+        "x-capacity-replaced-by": {
+          "operationId": "OutboundShipmentCartons",
+          "method": "POST",
+          "path": "/api/v1/outbound/orders/shipments/cartons"
+        }
+      }
+    },
+    "/api/track/trackevent": {
+      "post": {
+        "operationId": "LegacyTrackEvent",
+        "summary": "Get carrier tracking events (existing integrations)",
+        "description": "Existing integrations only. New integrations must use `POST /api/v1/outbound/orders/shipments/tracking/events`; a new client calling this path gets 410.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GetTrackingEventsRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GetTrackingEventsRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerApiTrackingEventsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerApiMessageResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerApiMessageResponse"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Gone",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerApiMessageResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerApiMessageResponse"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "X-Correlation-ID",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Optional. A unique ID for this request (a UUID). It is echoed back on the response; log it and quote it when you contact support. If you omit it, one is generated and returned.",
+            "example": "6f1c2a9e-3b7d-4c55-9a10-2f8e4d1b7c3a"
+          }
+        ],
+        "security": [
+          {
+            "BearerToken": []
+          }
+        ],
+        "tags": [
+          "Shipments"
+        ],
+        "deprecated": true,
+        "servers": [
+          {
+            "url": "https://api-integration.capacityllc.com",
+            "description": "Production, existing integrations only (previous Capacity REST API address)"
+          },
+          {
+            "url": "https://api-partner.capacityllc.com",
+            "description": "Production"
+          }
+        ],
+        "x-capacity-replaced-by": {
+          "operationId": "OutboundTrackingEvents",
+          "method": "POST",
+          "path": "/api/v1/outbound/orders/shipments/tracking/events"
+        }
+      }
+    },
+    "/api/RO/create": {
+      "post": {
+        "operationId": "LegacyReceivingOrderCreate",
+        "summary": "Submit receiving orders (existing integrations)",
+        "description": "Existing integrations only. New integrations must use `POST /api/v1/inbound/orders`; a new client calling this path gets 410.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateReceivingOrdersRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateReceivingOrdersRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateReceivingOrdersResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerApiMessageResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerApiMessageResponse"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Gone",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerApiMessageResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerApiMessageResponse"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "X-Correlation-ID",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Optional. A unique ID for this request (a UUID). It is echoed back on the response; log it and quote it when you contact support. If you omit it, one is generated and returned.",
+            "example": "6f1c2a9e-3b7d-4c55-9a10-2f8e4d1b7c3a"
+          }
+        ],
+        "security": [
+          {
+            "BearerToken": []
+          }
+        ],
+        "tags": [
+          "Inbound orders"
+        ],
+        "deprecated": true,
+        "servers": [
+          {
+            "url": "https://api-integration.capacityllc.com",
+            "description": "Production, existing integrations only (previous Capacity REST API address)"
+          },
+          {
+            "url": "https://api-partner.capacityllc.com",
+            "description": "Production"
+          }
+        ],
+        "x-capacity-replaced-by": {
+          "operationId": "InboundOrderCreate",
+          "method": "POST",
+          "path": "/api/v1/inbound/orders"
+        }
+      }
+    },
+    "/api/RO/track": {
+      "post": {
+        "operationId": "LegacyReceivingOrderTrack",
+        "summary": "Get receipt confirmations (existing integrations)",
+        "description": "Existing integrations only. New integrations must use `POST /api/v1/inbound/orders/confirmations`; a new client calling this path gets 410.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RoConfirmationsRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RoConfirmationsRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RoConfirmationsResponse"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerApiMessageResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerApiMessageResponse"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Gone",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerApiMessageResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerApiMessageResponse"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "X-Correlation-ID",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Optional. A unique ID for this request (a UUID). It is echoed back on the response; log it and quote it when you contact support. If you omit it, one is generated and returned.",
+            "example": "6f1c2a9e-3b7d-4c55-9a10-2f8e4d1b7c3a"
+          }
+        ],
+        "security": [
+          {
+            "BearerToken": []
+          }
+        ],
+        "tags": [
+          "Inbound orders"
+        ],
+        "deprecated": true,
+        "servers": [
+          {
+            "url": "https://api-integration.capacityllc.com",
+            "description": "Production, existing integrations only (previous Capacity REST API address)"
+          },
+          {
+            "url": "https://api-partner.capacityllc.com",
+            "description": "Production"
+          }
+        ],
+        "x-capacity-replaced-by": {
+          "operationId": "InboundOrderConfirmations",
+          "method": "POST",
+          "path": "/api/v1/inbound/orders/confirmations"
+        }
+      }
+    },
+    "/api/inventory": {
+      "post": {
+        "operationId": "LegacyInventory",
+        "summary": "Get inventory (existing integrations)",
+        "description": "Existing integrations only. New integrations must use `POST /api/v1/inventory`; a new client calling this path gets 410.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InventorySnapshotRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InventorySnapshotRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InventorySnapshotResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerApiMessageResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerApiMessageResponse"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Gone",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerApiMessageResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerApiMessageResponse"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "X-Correlation-ID",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Optional. A unique ID for this request (a UUID). It is echoed back on the response; log it and quote it when you contact support. If you omit it, one is generated and returned.",
+            "example": "6f1c2a9e-3b7d-4c55-9a10-2f8e4d1b7c3a"
+          }
+        ],
+        "security": [
+          {
+            "BearerToken": []
+          }
+        ],
+        "tags": [
+          "Inventory"
+        ],
+        "deprecated": true,
+        "servers": [
+          {
+            "url": "https://api-integration.capacityllc.com",
+            "description": "Production, existing integrations only (previous Capacity REST API address)"
+          },
+          {
+            "url": "https://api-partner.capacityllc.com",
+            "description": "Production"
+          }
+        ],
+        "x-capacity-replaced-by": {
+          "operationId": "InventorySnapshot",
+          "method": "POST",
+          "path": "/api/v1/inventory"
+        }
+      }
+    },
+    "/api/inventory/storage/locations/qty": {
+      "post": {
+        "operationId": "LegacyInventoryStorageLocationsQty",
+        "summary": "Get inventory by lot and LPN (existing integrations)",
+        "description": "Existing integrations only. New integrations must use `POST /api/v1/inventory/lots-and-lpns`; a new client calling this path gets 410.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InventorySnapshotRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InventorySnapshotRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InventoryLotLpnResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerApiMessageResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerApiMessageResponse"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Gone",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerApiMessageResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerApiMessageResponse"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "X-Correlation-ID",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Optional. A unique ID for this request (a UUID). It is echoed back on the response; log it and quote it when you contact support. If you omit it, one is generated and returned.",
+            "example": "6f1c2a9e-3b7d-4c55-9a10-2f8e4d1b7c3a"
+          }
+        ],
+        "security": [
+          {
+            "BearerToken": []
+          }
+        ],
+        "tags": [
+          "Inventory"
+        ],
+        "deprecated": true,
+        "servers": [
+          {
+            "url": "https://api-integration.capacityllc.com",
+            "description": "Production, existing integrations only (previous Capacity REST API address)"
+          },
+          {
+            "url": "https://api-partner.capacityllc.com",
+            "description": "Production"
+          }
+        ],
+        "x-capacity-replaced-by": {
+          "operationId": "InventoryLotsAndLpns",
+          "method": "POST",
+          "path": "/api/v1/inventory/lots-and-lpns"
+        }
+      }
+    },
+    "/api/order/track/old": {
+      "post": {
+        "operationId": "LegacyOrderTrackOld",
+        "summary": "Get shipment confirmations (existing integrations)",
+        "description": "Existing integrations only. New integrations must use `POST /api/v1/outbound/orders/shipments`; a new client calling this path gets 410.\n\nPrevious ship-confirmation format. No /api/v1/ equivalent: use POST /api/v1/outbound/orders/shipments, whose response format differs.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GetOrderTrackingRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GetOrderTrackingRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerApiOrderTrackingListResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerApiMessageResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerApiMessageResponse"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Gone",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerApiMessageResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerApiMessageResponse"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "X-Correlation-ID",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Optional. A unique ID for this request (a UUID). It is echoed back on the response; log it and quote it when you contact support. If you omit it, one is generated and returned.",
+            "example": "6f1c2a9e-3b7d-4c55-9a10-2f8e4d1b7c3a"
+          }
+        ],
+        "security": [
+          {
+            "BearerToken": []
+          }
+        ],
+        "tags": [
+          "Shipments"
+        ],
+        "deprecated": true,
+        "servers": [
+          {
+            "url": "https://api-integration.capacityllc.com",
+            "description": "Production, existing integrations only (previous Capacity REST API address)"
+          },
+          {
+            "url": "https://api-partner.capacityllc.com",
+            "description": "Production"
+          }
+        ]
+      }
+    },
+    "/api/order/track/cartons/old": {
+      "post": {
+        "operationId": "LegacyOrderTrackCartonsOld",
+        "summary": "Get shipment confirmations by carton (existing integrations)",
+        "description": "Existing integrations only. New integrations must use `POST /api/v1/outbound/orders/shipments/cartons`; a new client calling this path gets 410.\n\nPrevious carton format. No /api/v1/ equivalent: use POST /api/v1/outbound/orders/shipments/cartons, whose response format differs.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GetOrderTrackingRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GetOrderTrackingRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerApiCartonTrackingResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerApiMessageResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerApiMessageResponse"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Gone",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerApiMessageResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PartnerApiMessageResponse"
+                }
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "X-Correlation-ID",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Optional. A unique ID for this request (a UUID). It is echoed back on the response; log it and quote it when you contact support. If you omit it, one is generated and returned.",
+            "example": "6f1c2a9e-3b7d-4c55-9a10-2f8e4d1b7c3a"
+          }
+        ],
+        "security": [
+          {
+            "BearerToken": []
+          }
+        ],
+        "tags": [
+          "Shipments"
+        ],
+        "deprecated": true,
+        "servers": [
+          {
+            "url": "https://api-integration.capacityllc.com",
+            "description": "Production, existing integrations only (previous Capacity REST API address)"
+          },
+          {
+            "url": "https://api-partner.capacityllc.com",
+            "description": "Production"
+          }
+        ]
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "BearerToken": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "Get a token from POST /api/v1/auth/token (OAuth 2.0 client credentials) and send it as \"Authorization: Bearer <token>\". Tokens last about 15 minutes."
+      }
+    },
+    "schemas": {
+      "CancelOrderRequest": {
+        "required": [
+          "pickticketid"
+        ],
+        "type": "object",
+        "properties": {
+          "pickticketid": {
+            "type": "string",
+            "nullable": true,
+            "description": "The pick ticket of the order to cancel."
+          }
+        },
+        "additionalProperties": false
+      },
+      "CancelOrderResponse": {
+        "type": "object",
+        "properties": {
+          "pickticketid": {
+            "type": "string",
+            "nullable": true
+          },
+          "order_cancelled": {
+            "type": "boolean"
+          },
+          "order_cancelled_result": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "CreateOrdersRequest": {
+        "required": [
+          "orders"
+        ],
+        "type": "object",
+        "properties": {
+          "orders": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PartnerApiOrderModel"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "CreateOrdersResponse": {
+        "type": "object",
+        "properties": {
+          "accepted": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "CreateReceivingOrdersRequest": {
+        "required": [
+          "orders"
+        ],
+        "type": "object",
+        "properties": {
+          "orders": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PartnerApiReceivingOrderModel"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "CreateReceivingOrdersResponse": {
+        "type": "object",
+        "properties": {
+          "accepted": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "GetOrderTrackingRequest": {
+        "required": [
+          "batch_date",
+          "batch_num"
+        ],
+        "type": "object",
+        "properties": {
+          "batch_num": {
+            "minimum": 1,
+            "type": "integer",
+            "format": "int32"
+          },
+          "batch_date": {
+            "type": "string",
+            "nullable": true,
+            "x-capacity-timezone": "America/New_York",
+            "description": "US Eastern local time (America/New_York); no UTC offset is included."
+          }
+        },
+        "additionalProperties": false
+      },
+      "GetOrderTrackingV2Request": {
+        "required": [
+          "batch_date",
+          "batch_num"
+        ],
+        "type": "object",
+        "properties": {
+          "batch_num": {
+            "maximum": 32767,
+            "minimum": 1,
+            "type": "integer",
+            "format": "int32",
+            "description": "The ship-confirmation batch number for the day, starting at 1."
+          },
+          "batch_date": {
+            "type": "string",
+            "nullable": true,
+            "x-capacity-timezone": "America/New_York",
+            "description": "The batch's calendar date. US Eastern local time (America/New_York); no UTC offset is included."
+          }
+        },
+        "additionalProperties": false
+      },
+      "GetPickedOrderDetailsRequest": {
+        "required": [
+          "orderIds"
+        ],
+        "type": "object",
+        "properties": {
+          "orderIds": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            },
+            "nullable": true,
+            "description": "Capacity order numbers (not your pick tickets)."
+          }
+        },
+        "additionalProperties": false
+      },
+      "GetTrackingEventsRequest": {
+        "required": [
+          "batch_date",
+          "hour_num"
+        ],
+        "type": "object",
+        "properties": {
+          "hour_num": {
+            "maximum": 23,
+            "minimum": 0,
+            "type": "integer",
+            "format": "int32",
+            "nullable": true,
+            "description": "Hour of day, 0-23, US Eastern (0 is midnight to 00:59)."
+          },
+          "batch_date": {
+            "type": "string",
+            "nullable": true,
+            "x-capacity-timezone": "America/New_York",
+            "description": "The calendar date of the events. US Eastern local time (America/New_York); no UTC offset is included."
+          }
+        },
+        "additionalProperties": false
+      },
+      "InventoryLotLpnHold": {
+        "type": "object",
+        "properties": {
+          "dmg": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "qc": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "exp": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "qrt": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "bldg": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "cap": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "cycl": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "prec": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "rcal": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "rffo": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "rtrn": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "shrt": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "uom": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "wupc": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "InventoryLotLpnItem": {
+        "type": "object",
+        "properties": {
+          "sku": {
+            "type": "string",
+            "nullable": true
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "lotNo": {
+            "type": "string",
+            "nullable": true
+          },
+          "expiryDate": {
+            "type": "string",
+            "x-capacity-timezone": "America/New_York",
+            "description": "US Eastern local time (America/New_York); no UTC offset is included."
+          },
+          "lpn": {
+            "type": "string",
+            "nullable": true
+          },
+          "totalQty": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "onHandInclCommitted": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "hold": {
+            "$ref": "#/components/schemas/InventoryLotLpnHold"
+          }
+        },
+        "additionalProperties": false
+      },
+      "InventoryLotLpnResponse": {
+        "type": "object",
+        "properties": {
+          "client": {
+            "type": "string",
+            "nullable": true
+          },
+          "inventory": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/InventoryLotLpnItem"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "InventorySnapshotItem": {
+        "type": "object",
+        "properties": {
+          "sku": {
+            "type": "string",
+            "nullable": true
+          },
+          "upc": {
+            "type": "string",
+            "nullable": true
+          },
+          "name": {
+            "type": "string",
+            "nullable": true
+          },
+          "category": {
+            "type": "string",
+            "nullable": true
+          },
+          "price": {
+            "type": "string",
+            "nullable": true
+          },
+          "onhand": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "commited": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "available": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "other": {
+            "nullable": true
+          },
+          "onhold": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "quarantine": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "picked": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "InventorySnapshotRequest": {
+        "required": [
+          "client"
+        ],
+        "type": "object",
+        "properties": {
+          "client": {
+            "maxLength": 2,
+            "minLength": 2,
+            "type": "string",
+            "nullable": true,
+            "description": "Your 2-character owner code, matched exactly including case."
+          }
+        },
+        "additionalProperties": false
+      },
+      "InventorySnapshotResponse": {
+        "type": "object",
+        "properties": {
+          "client": {
+            "type": "string",
+            "nullable": true
+          },
+          "inventory": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/InventorySnapshotItem"
+            },
+            "nullable": true
+          },
+          "other": {
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "PartnerApiCartonTrackingResponse": {
+        "type": "object",
+        "properties": {
+          "orderlist": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PartnerApiOrderShipTrackItem"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "PartnerApiMessageResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "nullable": true,
+            "description": "What went wrong. Validation messages name the field and the pick ticket."
+          }
+        },
+        "additionalProperties": false
+      },
+      "PartnerApiOrderCartonItem": {
+        "type": "object",
+        "properties": {
+          "cartonId": {
+            "type": "string",
+            "nullable": true
+          },
+          "trackingNum": {
+            "type": "string",
+            "nullable": true
+          },
+          "trackingURL": {
+            "type": "string",
+            "nullable": true
+          },
+          "ucc128": {
+            "type": "string",
+            "nullable": true
+          },
+          "palletNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PartnerApiOrderSkuItem"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "PartnerApiOrderLineItem": {
+        "type": "object",
+        "properties": {
+          "itemLineNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "capacityProductID": {
+            "type": "string",
+            "nullable": true
+          },
+          "capacityOrderQuantity": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "itemShipQuantity": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "capacityShippedQuantity": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "lotNo": {
+            "type": "string",
+            "nullable": true
+          },
+          "expiryDate": {
+            "type": "string",
+            "nullable": true,
+            "x-capacity-timezone": "America/New_York",
+            "description": "US Eastern local time (America/New_York); no UTC offset is included."
+          }
+        },
+        "additionalProperties": false
+      },
+      "PartnerApiOrderLineModel": {
+        "required": [
+          "itemproductid"
+        ],
+        "type": "object",
+        "properties": {
+          "itemlinenumber": {
+            "maxLength": 20,
+            "type": "string",
+            "nullable": true
+          },
+          "itemproductid": {
+            "type": "string",
+            "nullable": true,
+            "description": "Your SKU. Values longer than 50 characters are cut to 50."
+          },
+          "itemunitamount": {
+            "maxLength": 20,
+            "type": "string",
+            "nullable": true
+          },
+          "itemdiscountrate": {
+            "maxLength": 10,
+            "type": "string",
+            "nullable": true
+          },
+          "itemtaxrate": {
+            "maxLength": 10,
+            "type": "string",
+            "nullable": true
+          },
+          "itemorderquantity": {
+            "type": "string",
+            "nullable": true,
+            "description": "Whole number of units, digits only (\"2\", not \"+2\" or \"2.0\")."
+          },
+          "itemshipquantity": {
+            "type": "string",
+            "nullable": true,
+            "description": "Whole number, digits only."
+          },
+          "buyeritemnumber": {
+            "type": "string",
+            "nullable": true,
+            "description": "The retailer's item number. Values longer than 50 characters are cut to 50."
+          },
+          "itemproductdesc": {
+            "type": "string",
+            "nullable": true,
+            "description": "Values longer than 50 characters are cut to 50."
+          }
+        },
+        "additionalProperties": false
+      },
+      "PartnerApiOrderModel": {
+        "required": [
+          "clientcode",
+          "pickticketid",
+          "shipaddress1",
+          "shipcity",
+          "shipmethod",
+          "shipresidentialflag",
+          "shipstate",
+          "shipzip"
+        ],
+        "type": "object",
+        "properties": {
+          "pickticketid": {
+            "maxLength": 50,
+            "type": "string",
+            "nullable": true,
+            "description": "Your unique order reference. Used to cancel the order and to match shipment confirmations. Leading and trailing spaces count toward the limit."
+          },
+          "masterorderid": {
+            "maxLength": 50,
+            "type": "string",
+            "nullable": true
+          },
+          "releaseflag": {
+            "type": "string",
+            "nullable": true
+          },
+          "reship850flag": {
+            "type": "string",
+            "nullable": true
+          },
+          "ordertype": {
+            "maxLength": 10,
+            "type": "string",
+            "nullable": true
+          },
+          "specialprocessingflag": {
+            "type": "string",
+            "nullable": true
+          },
+          "capacityimportid": {
+            "maxLength": 20,
+            "type": "string",
+            "nullable": true
+          },
+          "ponumber": {
+            "maxLength": 50,
+            "type": "string",
+            "nullable": true
+          },
+          "retailercode": {
+            "maxLength": 3,
+            "type": "string",
+            "nullable": true,
+            "description": "Retailer code agreed during onboarding. Defaults to WEB when blank."
+          },
+          "storenumber": {
+            "maxLength": 50,
+            "type": "string",
+            "nullable": true
+          },
+          "shiptolocation": {
+            "maxLength": 50,
+            "type": "string",
+            "nullable": true
+          },
+          "clientcode": {
+            "maxLength": 2,
+            "minLength": 2,
+            "type": "string",
+            "nullable": true,
+            "description": "Your 2-character owner code, or the code of one of your related accounts."
+          },
+          "dropshipid": {
+            "maxLength": 10,
+            "type": "string",
+            "nullable": true
+          },
+          "externalcustomerid": {
+            "maxLength": 50,
+            "type": "string",
+            "nullable": true
+          },
+          "shipbusinessname": {
+            "maxLength": 128,
+            "type": "string",
+            "nullable": true,
+            "description": "Recipient business name. Required when shipname is blank."
+          },
+          "shipname": {
+            "maxLength": 128,
+            "type": "string",
+            "nullable": true,
+            "description": "Recipient name. Required when shipbusinessname is blank."
+          },
+          "shipaddress1": {
+            "maxLength": 128,
+            "type": "string",
+            "nullable": true
+          },
+          "shipaddress2": {
+            "maxLength": 128,
+            "type": "string",
+            "nullable": true
+          },
+          "shipcity": {
+            "maxLength": 128,
+            "type": "string",
+            "nullable": true
+          },
+          "shipstate": {
+            "maxLength": 50,
+            "type": "string",
+            "nullable": true
+          },
+          "shipzip": {
+            "maxLength": 20,
+            "type": "string",
+            "nullable": true
+          },
+          "shipcountry": {
+            "maxLength": 50,
+            "type": "string",
+            "nullable": true
+          },
+          "shipphone": {
+            "maxLength": 50,
+            "type": "string",
+            "nullable": true
+          },
+          "shipemail": {
+            "maxLength": 100,
+            "type": "string",
+            "nullable": true
+          },
+          "shipresidentialflag": {
+            "maxLength": 1,
+            "minLength": 1,
+            "type": "string",
+            "nullable": true,
+            "description": "Y for a residential address, N for commercial."
+          },
+          "shipmethod": {
+            "maxLength": 100,
+            "type": "string",
+            "nullable": true,
+            "description": "Ship method code agreed during onboarding."
+          },
+          "thirdpartyaccount": {
+            "maxLength": 50,
+            "type": "string",
+            "nullable": true
+          },
+          "signaturerequired": {
+            "type": "string",
+            "nullable": true
+          },
+          "shipcomment": {
+            "maxLength": 2000,
+            "type": "string",
+            "nullable": true
+          },
+          "giftwrapflag": {
+            "type": "string",
+            "nullable": true
+          },
+          "giftfrom": {
+            "maxLength": 50,
+            "type": "string",
+            "nullable": true
+          },
+          "giftto": {
+            "maxLength": 50,
+            "type": "string",
+            "nullable": true
+          },
+          "giftmessage": {
+            "maxLength": 1000,
+            "type": "string",
+            "nullable": true
+          },
+          "billbusinessname": {
+            "maxLength": 128,
+            "type": "string",
+            "nullable": true
+          },
+          "billname": {
+            "maxLength": 128,
+            "type": "string",
+            "nullable": true
+          },
+          "billaddress1": {
+            "maxLength": 128,
+            "type": "string",
+            "nullable": true
+          },
+          "billaddress2": {
+            "maxLength": 128,
+            "type": "string",
+            "nullable": true
+          },
+          "billcity": {
+            "maxLength": 50,
+            "type": "string",
+            "nullable": true
+          },
+          "billstate": {
+            "maxLength": 50,
+            "type": "string",
+            "nullable": true
+          },
+          "billzip": {
+            "maxLength": 20,
+            "type": "string",
+            "nullable": true
+          },
+          "billcountry": {
+            "maxLength": 50,
+            "type": "string",
+            "nullable": true
+          },
+          "billphone": {
+            "maxLength": 50,
+            "type": "string",
+            "nullable": true
+          },
+          "paymentterms": {
+            "maxLength": 50,
+            "type": "string",
+            "nullable": true
+          },
+          "orderdate": {
+            "maxLength": 30,
+            "type": "string",
+            "nullable": true,
+            "x-capacity-timezone": "America/New_York",
+            "description": "US Eastern local time (America/New_York); no UTC offset is included."
+          },
+          "requestedshipdate": {
+            "maxLength": 20,
+            "type": "string",
+            "nullable": true,
+            "x-capacity-timezone": "America/New_York",
+            "description": "US Eastern local time (America/New_York); no UTC offset is included."
+          },
+          "canceldate": {
+            "maxLength": 20,
+            "type": "string",
+            "nullable": true,
+            "x-capacity-timezone": "America/New_York",
+            "description": "US Eastern local time (America/New_York); no UTC offset is included."
+          },
+          "requesteddeliverydate": {
+            "maxLength": 30,
+            "type": "string",
+            "nullable": true,
+            "x-capacity-timezone": "America/New_York",
+            "description": "US Eastern local time (America/New_York); no UTC offset is included."
+          },
+          "deliverybydate": {
+            "maxLength": 20,
+            "type": "string",
+            "nullable": true,
+            "x-capacity-timezone": "America/New_York",
+            "description": "US Eastern local time (America/New_York); no UTC offset is included."
+          },
+          "shippingamount": {
+            "maxLength": 20,
+            "type": "string",
+            "nullable": true
+          },
+          "shippingtaxrate": {
+            "maxLength": 10,
+            "type": "string",
+            "nullable": true
+          },
+          "orderdiscountrate": {
+            "maxLength": 10,
+            "type": "string",
+            "nullable": true
+          },
+          "orderdiscountamount": {
+            "maxLength": 20,
+            "type": "string",
+            "nullable": true
+          },
+          "saturdaydelivery": {
+            "type": "string",
+            "nullable": true
+          },
+          "codflag": {
+            "type": "string",
+            "nullable": true
+          },
+          "codamount": {
+            "maxLength": 20,
+            "type": "string",
+            "nullable": true
+          },
+          "codaddshipcharges": {
+            "type": "string",
+            "nullable": true
+          },
+          "codcashiercheck": {
+            "type": "string",
+            "nullable": true
+          },
+          "lines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PartnerApiOrderLineModel"
+            },
+            "nullable": true,
+            "description": "The items to ship; send at least one. An order with an empty lines array is skipped."
+          }
+        },
+        "additionalProperties": false,
+        "description": "One outbound order. Every value is a string; provide shipname or shipbusinessname (at least one)."
+      },
+      "PartnerApiOrderShipTrackItem": {
+        "type": "object",
+        "properties": {
+          "pickticketid": {
+            "type": "string",
+            "nullable": true
+          },
+          "masterorderid": {
+            "type": "string",
+            "nullable": true
+          },
+          "orderStatus": {
+            "type": "string",
+            "nullable": true
+          },
+          "orderStatusDescription": {
+            "type": "string",
+            "nullable": true
+          },
+          "orderType": {
+            "type": "string",
+            "nullable": true
+          },
+          "orderSource": {
+            "type": "string",
+            "nullable": true
+          },
+          "capacityImportID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "capacityPickTicketID": {
+            "type": "string",
+            "nullable": true
+          },
+          "poNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "retailerCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "storeNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "shipToLocation": {
+            "type": "string",
+            "nullable": true
+          },
+          "clientCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "dropshipID": {
+            "type": "string",
+            "nullable": true
+          },
+          "shipDate": {
+            "type": "string",
+            "x-capacity-timezone": "America/New_York",
+            "description": "US Eastern local time (America/New_York); no UTC offset is included."
+          },
+          "lineItems": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PartnerApiOrderLineItem"
+            },
+            "nullable": true
+          },
+          "capacityUOM": {
+            "type": "string",
+            "nullable": true
+          },
+          "itemSerialNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "shipMethod": {
+            "type": "string",
+            "nullable": true
+          },
+          "shipCarrier": {
+            "type": "string",
+            "nullable": true
+          },
+          "cartons": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PartnerApiOrderCartonItem"
+            },
+            "nullable": true
+          },
+          "shipWeight": {
+            "type": "number",
+            "format": "double"
+          },
+          "shipCartons": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "shipCost": {
+            "type": "number",
+            "format": "double"
+          },
+          "invoiceNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "productSubtotalAmount": {
+            "type": "number",
+            "format": "double"
+          },
+          "totalDiscountAmount": {
+            "type": "number",
+            "format": "double"
+          },
+          "totalChargeAmount": {
+            "type": "number",
+            "format": "double"
+          },
+          "totalTaxAmount": {
+            "type": "number",
+            "format": "double"
+          },
+          "totalInvoiceAmount": {
+            "type": "number",
+            "format": "double"
+          },
+          "bolNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "loadNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "appointmentNum": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "PartnerApiOrderSkuItem": {
+        "type": "object",
+        "properties": {
+          "itemLineNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "upc": {
+            "type": "string",
+            "nullable": true
+          },
+          "sku": {
+            "type": "string",
+            "nullable": true
+          },
+          "qtyShipped": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "lotNo": {
+            "type": "string",
+            "nullable": true
+          },
+          "expiryDate": {
+            "type": "string",
+            "nullable": true,
+            "x-capacity-timezone": "America/New_York",
+            "description": "US Eastern local time (America/New_York); no UTC offset is included."
+          }
+        },
+        "additionalProperties": false
+      },
+      "PartnerApiOrderTrackingItem": {
+        "type": "object",
+        "properties": {
+          "pickticketid": {
+            "type": "string",
+            "nullable": true
+          },
+          "masterorderid": {
+            "type": "string",
+            "nullable": true
+          },
+          "orderStatus": {
+            "type": "string",
+            "nullable": true
+          },
+          "orderStatusDescription": {
+            "type": "string",
+            "nullable": true
+          },
+          "orderType": {
+            "type": "string",
+            "nullable": true
+          },
+          "orderSource": {
+            "type": "string",
+            "nullable": true
+          },
+          "capacityImportID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "capacityPickTicketID": {
+            "type": "string",
+            "nullable": true
+          },
+          "poNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "retailerCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "storeNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "shipToLocation": {
+            "type": "string",
+            "nullable": true
+          },
+          "clientCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "dropshipID": {
+            "type": "string",
+            "nullable": true
+          },
+          "shipDate": {
+            "type": "string",
+            "x-capacity-timezone": "America/New_York",
+            "description": "US Eastern local time (America/New_York); no UTC offset is included."
+          },
+          "itemLineNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "capacityProductID": {
+            "type": "string",
+            "nullable": true
+          },
+          "capacityOrderQuantity": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "itemShipQuantity": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "capacityShippedQuantity": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "capacityUOM": {
+            "type": "string",
+            "nullable": true
+          },
+          "capacityCasePack": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "itemProductID": {
+            "type": "string",
+            "nullable": true
+          },
+          "itemSerialNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "shipMethod": {
+            "type": "string",
+            "nullable": true
+          },
+          "shipCarrier": {
+            "type": "string",
+            "nullable": true
+          },
+          "shipTracking": {
+            "type": "string",
+            "nullable": true
+          },
+          "trackingUrl": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "shipWeight": {
+            "type": "number",
+            "format": "double"
+          },
+          "shipCartons": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "shipCost": {
+            "type": "number",
+            "format": "double"
+          },
+          "invoiceNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "productSubtotalAmount": {
+            "type": "number",
+            "format": "double"
+          },
+          "totalDiscountAmount": {
+            "type": "number",
+            "format": "double"
+          },
+          "totalChargeAmount": {
+            "type": "number",
+            "format": "double"
+          },
+          "totalTaxAmount": {
+            "type": "number",
+            "format": "double"
+          },
+          "totalInvoiceAmount": {
+            "type": "number",
+            "format": "double"
+          },
+          "lotNo": {
+            "type": "string",
+            "nullable": true
+          },
+          "expiryDate": {
+            "type": "string",
+            "nullable": true,
+            "x-capacity-timezone": "America/New_York",
+            "description": "US Eastern local time (America/New_York); no UTC offset is included."
+          }
+        },
+        "additionalProperties": false
+      },
+      "PartnerApiOrderTrackingListResponse": {
+        "type": "object",
+        "properties": {
+          "orderlist": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PartnerApiOrderTrackingItem"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "PartnerApiReceivingOrderModel": {
+        "required": [
+          "clientcode",
+          "deliverydate",
+          "ponumber",
+          "quantity",
+          "sku"
+        ],
+        "type": "object",
+        "properties": {
+          "clientcode": {
+            "maxLength": 2,
+            "minLength": 2,
+            "type": "string",
+            "nullable": true,
+            "description": "Your 2-character owner code."
+          },
+          "ponumber": {
+            "maxLength": 50,
+            "type": "string",
+            "nullable": true
+          },
+          "deliverydate": {
+            "type": "string",
+            "x-capacity-timezone": "America/New_York",
+            "description": "US Eastern local time (America/New_York); no UTC offset is included."
+          },
+          "linenumber": {
+            "maxLength": 10,
+            "type": "string",
+            "nullable": true
+          },
+          "sku": {
+            "maxLength": 50,
+            "type": "string",
+            "nullable": true
+          },
+          "quantity": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Units expected; a whole number above 0."
+          },
+          "unitofmeasure": {
+            "type": "string",
+            "nullable": true
+          },
+          "casepack": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "source": {
+            "type": "string",
+            "nullable": true
+          },
+          "containernumber": {
+            "maxLength": 50,
+            "type": "string",
+            "nullable": true
+          },
+          "notes": {
+            "maxLength": 1000,
+            "type": "string",
+            "nullable": true
+          },
+          "lot": {
+            "maxLength": 20,
+            "type": "string",
+            "nullable": true
+          },
+          "upc": {
+            "maxLength": 50,
+            "type": "string",
+            "nullable": true
+          },
+          "putawaylocation": {
+            "maxLength": 20,
+            "type": "string",
+            "nullable": true
+          },
+          "tag": {
+            "maxLength": 20,
+            "type": "string",
+            "nullable": true
+          },
+          "rotypeid": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "externalOrderId": {
+            "type": "string",
+            "nullable": true
+          },
+          "rmaId": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false,
+        "description": "One receiving (inbound) order line."
+      },
+      "PartnerApiTokenErrorResponse": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string",
+            "nullable": true
+          },
+          "error_description": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "PartnerApiTokenSuccessResponse": {
+        "type": "object",
+        "properties": {
+          "access_token": {
+            "type": "string",
+            "nullable": true,
+            "description": "The bearer token. Treat it as opaque: do not parse it or depend on its contents."
+          },
+          "token_type": {
+            "type": "string",
+            "nullable": true
+          },
+          "expires_in": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Seconds until the token expires (about 900)."
+          },
+          ".issued": {
+            "type": "string",
+            "nullable": true,
+            "description": "When the token was issued (RFC 1123, GMT)."
+          },
+          ".expires": {
+            "type": "string",
+            "nullable": true,
+            "description": "When the token expires (RFC 1123, GMT)."
+          }
+        },
+        "additionalProperties": false
+      },
+      "PartnerApiTrackingEventItem": {
+        "type": "object",
+        "properties": {
+          "capacityOrderNum": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "carrierTrackingNum": {
+            "type": "string",
+            "nullable": true
+          },
+          "carrierActivity": {
+            "type": "string",
+            "nullable": true
+          },
+          "eventDescription": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "PartnerApiTrackingEventsResponse": {
+        "type": "object",
+        "properties": {
+          "trackingnumberlist": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PartnerApiTrackingEventItem"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "PickedOrderCartonDetailsResponse": {
+        "type": "object",
+        "properties": {
+          "cartonId": {
+            "type": "string",
+            "nullable": true
+          },
+          "trackingNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "trackingUrl": {
+            "type": "string",
+            "nullable": true
+          },
+          "orderNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "packStatus": {
+            "type": "string",
+            "nullable": true
+          },
+          "poNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "upcQty": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "cartonWeight": {
+            "type": "number",
+            "format": "double"
+          },
+          "upc": {
+            "type": "string",
+            "nullable": true
+          },
+          "sku": {
+            "type": "string",
+            "nullable": true
+          },
+          "cartonType": {
+            "type": "string",
+            "nullable": true
+          },
+          "cartonCube": {
+            "type": "number",
+            "format": "double"
+          },
+          "cartonSize": {
+            "type": "string",
+            "nullable": true
+          },
+          "palletId": {
+            "type": "string",
+            "nullable": true
+          },
+          "packedBy": {
+            "type": "string",
+            "nullable": true
+          },
+          "ucc128": {
+            "type": "string",
+            "nullable": true
+          },
+          "bolNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "iohId": {
+            "type": "string",
+            "nullable": true
+          },
+          "whSlipTemplate": {
+            "type": "string",
+            "nullable": true
+          },
+          "isHazmat": {
+            "type": "boolean"
+          },
+          "palletStatusKey": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "autoPacked": {
+            "type": "string",
+            "nullable": true
+          },
+          "retailer": {
+            "type": "string",
+            "nullable": true
+          },
+          "accountingId": {
+            "type": "string",
+            "nullable": true
+          },
+          "storeNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "ownerId": {
+            "type": "string",
+            "nullable": true
+          },
+          "orderComplete": {
+            "type": "string",
+            "nullable": true
+          },
+          "shipmentCreateKey": {
+            "type": "string",
+            "nullable": true
+          },
+          "shipToCity": {
+            "type": "string",
+            "nullable": true
+          },
+          "shipToState": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "PickedOrderDetailsResponse": {
+        "type": "object",
+        "properties": {
+          "pickTicketID": {
+            "type": "string",
+            "nullable": true
+          },
+          "isAssemblyOrder": {
+            "type": "string",
+            "nullable": true
+          },
+          "message": {
+            "type": "string",
+            "nullable": true
+          },
+          "masterOrderID": {
+            "type": "string",
+            "nullable": true
+          },
+          "orderStatus": {
+            "type": "string",
+            "nullable": true
+          },
+          "orderStatusDescription": {
+            "type": "string",
+            "nullable": true
+          },
+          "orderStatusDate": {
+            "type": "string",
+            "nullable": true,
+            "x-capacity-timezone": "America/New_York",
+            "description": "US Eastern local time (America/New_York); no UTC offset is included."
+          },
+          "orderType": {
+            "type": "string",
+            "nullable": true
+          },
+          "orderSource": {
+            "type": "string",
+            "nullable": true
+          },
+          "capacityImportID": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "capacityPickTicketID": {
+            "type": "string",
+            "nullable": true
+          },
+          "poNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "retailerCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "storeNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "shipToLocation": {
+            "type": "string",
+            "nullable": true
+          },
+          "clientCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "dropshipID": {
+            "type": "string",
+            "nullable": true
+          },
+          "shipDate": {
+            "type": "string",
+            "x-capacity-timezone": "America/New_York",
+            "description": "US Eastern local time (America/New_York); no UTC offset is included."
+          },
+          "totalDiscountAmount": {
+            "type": "number",
+            "format": "double"
+          },
+          "totalChargeAmount": {
+            "type": "number",
+            "format": "double"
+          },
+          "totalTaxAmount": {
+            "type": "number",
+            "format": "double"
+          },
+          "totalInvoiceAmount": {
+            "type": "number",
+            "format": "double"
+          },
+          "shipMethod": {
+            "type": "string",
+            "nullable": true
+          },
+          "shipCarrier": {
+            "type": "string",
+            "nullable": true
+          },
+          "shipTracking": {
+            "type": "string",
+            "nullable": true
+          },
+          "shipWeight": {
+            "type": "number",
+            "format": "double"
+          },
+          "shipCartons": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "shipCost": {
+            "type": "number",
+            "format": "double"
+          },
+          "invoiceNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pickedOrderStatus": {
+            "type": "string",
+            "nullable": true
+          },
+          "pickedOrderStatusDescription": {
+            "type": "string",
+            "nullable": true
+          },
+          "pickedOrderStatusDate": {
+            "type": "string",
+            "nullable": true,
+            "x-capacity-timezone": "America/New_York",
+            "description": "US Eastern local time (America/New_York); no UTC offset is included."
+          },
+          "releaseDate": {
+            "type": "string",
+            "nullable": true,
+            "x-capacity-timezone": "America/New_York",
+            "description": "US Eastern local time (America/New_York); no UTC offset is included."
+          },
+          "currentSLADate": {
+            "type": "string",
+            "nullable": true,
+            "x-capacity-timezone": "America/New_York",
+            "description": "US Eastern local time (America/New_York); no UTC offset is included."
+          },
+          "slaExclusionReason": {
+            "type": "string",
+            "nullable": true
+          },
+          "poDomain": {
+            "type": "string",
+            "nullable": true
+          },
+          "clientCenter": {
+            "type": "string",
+            "nullable": true
+          },
+          "shipTrackingDetail": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PickedOrderShipTrackingDetailResponse"
+            },
+            "nullable": true
+          },
+          "cartonDetails": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PickedOrderCartonDetailsResponse"
+            },
+            "nullable": true
+          },
+          "lines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PickedOrderLineResponse"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "PickedOrderLineResponse": {
+        "type": "object",
+        "properties": {
+          "itemLineNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "capacityProductID": {
+            "type": "string",
+            "nullable": true
+          },
+          "capacityOrderQuantity": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "itemShipQuantity": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "capacityShippedQuantity": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "capacityUOM": {
+            "type": "string",
+            "nullable": true
+          },
+          "capacityCasePack": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "itemProductID": {
+            "type": "string",
+            "nullable": true
+          },
+          "itemSerialNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "productSubtotalAmount": {
+            "type": "number",
+            "format": "double"
+          },
+          "lotNo": {
+            "type": "string",
+            "nullable": true
+          },
+          "expiryDate": {
+            "type": "string",
+            "nullable": true,
+            "x-capacity-timezone": "America/New_York",
+            "description": "US Eastern local time (America/New_York); no UTC offset is included."
+          }
+        },
+        "additionalProperties": false
+      },
+      "PickedOrderShipTrackingDetailResponse": {
+        "type": "object",
+        "properties": {
+          "trackingNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "trackingUrl": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RoConfirmationsRequest": {
+        "required": [
+          "batch_num"
+        ],
+        "type": "object",
+        "properties": {
+          "batch_num": {
+            "minimum": 1,
+            "type": "integer",
+            "format": "int32",
+            "description": "The receipt-confirmation batch number, starting at 1."
+          },
+          "batch_date": {
+            "type": "string",
+            "x-capacity-timezone": "America/New_York",
+            "description": "US Eastern local time (America/New_York); no UTC offset is included."
+          }
+        },
+        "additionalProperties": false
+      },
+      "RoConfirmationsResponse": {
+        "type": "object",
+        "properties": {
+          "ponumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "capacityponumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "receivedate": {
+            "type": "string",
+            "nullable": true,
+            "x-capacity-timezone": "America/New_York",
+            "description": "US Eastern local time (America/New_York); no UTC offset is included."
+          },
+          "linenumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "sku": {
+            "type": "string",
+            "nullable": true
+          },
+          "quantity": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "lotno": {
+            "type": "string",
+            "nullable": true
+          },
+          "expirydate": {
+            "type": "string",
+            "nullable": true,
+            "x-capacity-timezone": "America/New_York",
+            "description": "US Eastern local time (America/New_York); no UTC offset is included."
+          },
+          "refnumber1": {
+            "type": "string",
+            "nullable": true
+          },
+          "refnumber2": {
+            "type": "string",
+            "nullable": true
+          },
+          "refnumber3": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "security": [
+    {
+      "BearerToken": []
+    }
+  ]
+}

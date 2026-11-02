@@ -1,4 +1,4 @@
-# Capacity.Portal.PartnerApi
+﻿# Capacity.Portal.PartnerApi
 
 **Generated output. Do not edit by hand.**
 

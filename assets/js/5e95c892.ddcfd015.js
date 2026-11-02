@@ -1,0 +1,1 @@
+"use strict";(globalThis.webpackChunkcapacity_portal_partner_api||=[]).push([[9647],{7121(r,a,e){e.r(a),e.d(a,{default:()=>l});e(96540);var s=e(34164),t=e(17559),c=e(45500),p=e(22831),u=e(16733),i=e(74848);function l(r){return(0,i.jsx)(c.e3,{className:(0,s.A)(t.G.wrapper.docsPages),children:(0,i.jsx)(u.A,{children:(0,p.v)(r.route.routes)})})}}}]);

@@ -1,0 +1,1 @@
+(globalThis.webpackChunkcapacity_portal_partner_api||=[]).push([[5741],{45741(){}}]);

@@ -1,6 +1,6 @@
 {
-    "commit":  "dbbfbb37e40d01621944837781d5eedcd40445f8",
+    "commit":  "0fab4a6ff78aae6652d89d6ecc28649c6c9e3d1b",
     "contractSha256":  "454578b70918cb0b54dbc73b6beb84049fb9d72172ba57309b6abccd07db6df0",
-    "builtAt":  "2026-11-03T03:32:49.8016385Z",
+    "builtAt":  "2026-11-03T05:14:00.6511075Z",
     "run":  "manual publish (release workflow not yet on develop)"
 }

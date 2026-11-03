@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunkcapacity_portal_partner_api=self.webpackChunkcapacity_portal_partner_api||[]).push([["3312"],{52355(a,e,p){p.d(e,{createEventModelingServices:()=>r.g});var r=p(82688);p(4954)}}]);

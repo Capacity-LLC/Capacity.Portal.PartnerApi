@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunkcapacity_portal_partner_api=self.webpackChunkcapacity_portal_partner_api||[]).push([["3056"],{88552(a){a.exports=JSON.parse('{"name":"docusaurus-plugin-content-pages","id":"default"}')}}]);

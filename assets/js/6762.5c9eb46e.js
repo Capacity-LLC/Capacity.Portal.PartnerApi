@@ -1,0 +1,1 @@
+"use strict";(self.webpackChunkcapacity_portal_partner_api=self.webpackChunkcapacity_portal_partner_api||[]).push([["6762"],{37089(a,e,r){r.d(e,{createArchitectureServices:()=>c.S});var c=r(45796);r(4954)}}]);

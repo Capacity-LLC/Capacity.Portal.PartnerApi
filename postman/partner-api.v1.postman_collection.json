@@ -211,7 +211,7 @@
       }
     },
     {
-      "name": "Get picked orders",
+      "name": "Get order status",
       "request": {
         "method": "POST",
         "header": [

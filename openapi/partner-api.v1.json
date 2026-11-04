@@ -433,8 +433,8 @@
     "/api/v1/outbound/orders/status": {
       "post": {
         "operationId": "OutboundOrderStatus",
-        "summary": "Get picked orders",
-        "description": "Your picked orders (status: picked, awaiting shipment) with their lines, cartons and tracking. Every order of yours that is currently picked is returned, plus the Capacity order IDs you send if they have been picked; orders belonging to related accounts (same parent client) are included. A requested ID that has not been picked, or does not exist, comes back as a \"not found\" entry; if nothing is found the response is 404.\n\n**This returns picked orders.** An order appears once it has been picked (and until it ships). Every order of yours that is currently picked is returned, **even ones you did not ask for**, plus the orders you ask for by Capacity order number (`orderIds`) if they have been picked. Orders belonging to your related accounts (same parent client) are included.\n\n**An order that exists but has not been picked yet** comes back as a \"not found\" entry. If nothing at all is found, the response is `404`. Use shipment confirmations, not this call, to learn what has shipped.\n\n`orderIds` are Capacity order numbers (as returned in `capacityOrderNum` by carrier tracking events), not your pick tickets.\n\n`orderStatusDate` and `pickedOrderStatusDate` are `YYYY-MM-DD HH:MM:SS.mmm`; `releaseDate` and `currentSLADate` are `MM/DD/YYYY`; all US Eastern with no offset.",
+        "summary": "Get order status",
+        "description": "The current status of the orders you send, by Capacity order ID, with their lines, cartons and tracking. `orderStatus` is the order's latest status (for example packed or shipped) and `pickedOrderStatusDate` is when it was picked. An order appears once it has been picked: an ID that has not been picked yet, or does not exist, comes back as a \"not found\" entry. Every order of yours that is currently picked is returned as well, and orders belonging to related accounts (same parent client) are included. If nothing is found the response is 404.\n\n**This returns picked orders.** An order appears once it has been picked (and until it ships). Every order of yours that is currently picked is returned, **even ones you did not ask for**, plus the orders you ask for by Capacity order number (`orderIds`) if they have been picked. Orders belonging to your related accounts (same parent client) are included.\n\n**An order that exists but has not been picked yet** comes back as a \"not found\" entry. If nothing at all is found, the response is `404`. Use shipment confirmations, not this call, to learn what has shipped.\n\n`orderIds` are Capacity order numbers (as returned in `capacityOrderNum` by carrier tracking events), not your pick tickets.\n\n`orderStatusDate` and `pickedOrderStatusDate` are `YYYY-MM-DD HH:MM:SS.mmm`; `releaseDate` and `currentSLADate` are `MM/DD/YYYY`; all US Eastern with no offset.",
         "requestBody": {
           "required": true,
           "content": {
@@ -1436,7 +1436,7 @@
     "/api/order/status/picked": {
       "post": {
         "operationId": "LegacyOrderStatusPicked",
-        "summary": "Get picked orders (existing integrations)",
+        "summary": "Get order status (existing integrations)",
         "description": "Existing integrations only. New integrations must use `POST /api/v1/outbound/orders/status`; a new client calling this path gets 410.",
         "requestBody": {
           "required": true,

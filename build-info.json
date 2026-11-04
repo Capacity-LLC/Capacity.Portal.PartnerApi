@@ -1,6 +1,6 @@
 {
-  "commit": "e886f5d7b58282e81e5cc4bc36442345c9c99884",
-  "contractSha256": "bc7065155f9a2de8e29e30ffed438020c44bb02d6ea457f4ca1291c96a438f2b",
-  "builtAt": "2026-11-03T14:16:30.396Z",
+  "commit": "bfd65a836e057f504132652b28e0fda5f6052bca",
+  "contractSha256": "ff1a3d91b9ed1a7dc7636fcdbf3377e2e2bf6934ad39d8d01f707fc346e3adcb",
+  "builtAt": "2026-11-04T20:44:17.307Z",
   "run": "manual publish (release workflow needs a prod deploy that contains the portal)"
 }

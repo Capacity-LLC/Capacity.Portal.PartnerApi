@@ -1,0 +1,4 @@
+SKU	AltSKU	Description	OnHand	Commited	Available	Price	Category	LotCode	ExpiryDate
+SKU-EXAMPLE-1	012345678905	Example face cream 50 ml	80	20	60	28.00	Skincare	LOT-A1	06/30/2028
+SKU-EXAMPLE-1	012345678905	Example face cream 50 ml	40	0	40	28.00	Skincare	LOT-A2	01/31/2029
+SKU-EXAMPLE-2	012345678912	Example lip balm	48	0	48		Lip		

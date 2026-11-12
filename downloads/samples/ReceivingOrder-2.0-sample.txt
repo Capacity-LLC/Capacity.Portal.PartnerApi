@@ -1,0 +1,4 @@
+PONumber	LineNumber	DeliveryDate	SKU	UnitofMeasure	Quantity	CasePack	ClientCode	ContainerNumber	Notes	LotNumber	ExpiryDate
+PO-0002002	1	11/20/2026	SKU-EXAMPLE-3	CASE	50	6	ZZ		Palletized, delivery by appointment		
+PO-0002001	1	11/17/2026	SKU-EXAMPLE-1	CASE	20	24	ZZ	CONT0000001	Floor-loaded container	LOT-A1	06/30/2028
+PO-0002001	2	11/17/2026	SKU-EXAMPLE-2	EACH	600	1	ZZ	CONT0000001	Floor-loaded container	LOT-B7	03/31/2028

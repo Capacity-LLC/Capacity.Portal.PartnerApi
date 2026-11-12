@@ -1,0 +1,3 @@
+SKU	AltSKU	Description	OnHand	Commited	Available	Price	Category
+SKU-EXAMPLE-1	012345678905	Example face cream 50 ml	120	20	100	28.00	Skincare
+SKU-EXAMPLE-2	012345678912	Example lip balm	48	0	48		Lip

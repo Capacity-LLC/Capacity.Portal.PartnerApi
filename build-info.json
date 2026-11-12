@@ -1,6 +1,6 @@
 {
-  "commit": "bfd65a836e057f504132652b28e0fda5f6052bca",
-  "contractSha256": "ff1a3d91b9ed1a7dc7636fcdbf3377e2e2bf6934ad39d8d01f707fc346e3adcb",
-  "builtAt": "2026-11-04T20:44:17.307Z",
-  "run": "manual publish (release workflow needs a prod deploy that contains the portal)"
+  "commit": "971895343816611507546dc6d26ce7c7f12b4118",
+  "contractSha256": "7b8ff87b46a8ef2daaddc82d6a3a80899ecefdadb665e90ae954d03338de06de",
+  "builtAt": "2026-11-12T00:17:48.548Z",
+  "run": "https://github.com/Capacity-LLC/Capacity/actions/runs/43125274390"
 }

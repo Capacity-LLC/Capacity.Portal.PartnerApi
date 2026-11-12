@@ -1,0 +1,4 @@
+SKU	UPC	Brand	Name	Category	UOM	RetailPrice	CaseQuantity	NoOfInnerPacks	CaseWeight	CaseLength	CaseWidth	CaseHeight	CaseCube	TrackSerialNo	IsHazmat	CountryOfOrigin	HarmonizationCode	StyleNumber	ColorCode	SizeCode	NMFC	CommodityDesc	Class	AvailabilityCode	AvailabilityStartDate	AvailabilityEndDate	TrackLotNumber	TrackExpiryDate	ShelfLifeInDays
+SKU-EXAMPLE-1	012345678905	Example Brand	Example Face Cream 50 ml	Skincare	EACH	20.00	24	1	9.5000	12.00	10.00	8.00	0.5556	0	0	United States	3304.99.5000	ST-100		50ML				AC	11/10/2026		1	1	730
+SKU-EXAMPLE-2	012345678912	Example Brand	Example Lip Balm	Skincare	EACH	8.50	48	4	3.2500	10.00	8.00	6.00	0.2778	0	0	Canada	3304.10.0000	ST-200	RED					AC	11/10/2026		1	0	0
+SKU-EXAMPLE-3	SKU-EXAMPLE-3	Example Brand	Example Gift Set	Gift sets	CASE	45.00	6	1	12.0000	16.00	12.00	9.00	1.0000	0	0	France					156600	Cosmetics, NOI	55	PO	12/01/2026	01/31/2027	0	0	0

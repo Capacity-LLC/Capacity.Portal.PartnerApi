@@ -2,10 +2,10 @@
   "$schema": "http://cyclonedx.org/schema/bom-1.5.schema.json",
   "bomFormat": "CycloneDX",
   "specVersion": "1.5",
-  "serialNumber": "urn:uuid:033ec85f-3307-494a-a23b-d099b253d7ca",
+  "serialNumber": "urn:uuid:ff22aeff-66b7-4eb0-9c8b-e28384bfb5f7",
   "version": 1,
   "metadata": {
-    "timestamp": "2026-11-04T20:42:34.716Z",
+    "timestamp": "2026-11-12T00:16:50.440Z",
     "lifecycles": [
       {
         "phase": "build"
@@ -15,7 +15,7 @@
       {
         "vendor": "npm",
         "name": "cli",
-        "version": "10.8.2"
+        "version": "10.9.9"
       }
     ],
     "component": {
@@ -12573,24 +12573,24 @@
       ]
     },
     {
-      "bom-ref": "@node-rs/jieba-win32-x64-msvc@1.10.4",
+      "bom-ref": "@node-rs/jieba-linux-x64-gnu@1.10.4",
       "type": "library",
-      "name": "@node-rs/jieba-win32-x64-msvc",
+      "name": "@node-rs/jieba-linux-x64-gnu",
       "version": "1.10.4",
       "scope": "optional",
       "author": "LongYinan",
       "description": "Fastest Chinese word segmentation in Node.js",
-      "purl": "pkg:npm/%40node-rs/jieba-win32-x64-msvc@1.10.4",
+      "purl": "pkg:npm/%40node-rs/jieba-linux-x64-gnu@1.10.4",
       "properties": [
         {
           "name": "cdx:npm:package:path",
-          "value": "node_modules/@node-rs/jieba-win32-x64-msvc"
+          "value": "node_modules/@node-rs/jieba-linux-x64-gnu"
         }
       ],
       "externalReferences": [
         {
           "type": "distribution",
-          "url": "https://registry.npmjs.org/@node-rs/jieba-win32-x64-msvc/-/jieba-win32-x64-msvc-1.10.4.tgz"
+          "url": "https://registry.npmjs.org/@node-rs/jieba-linux-x64-gnu/-/jieba-linux-x64-gnu-1.10.4.tgz"
         },
         {
           "type": "vcs",
@@ -12608,7 +12608,54 @@
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "faca9e9927d2d638dbf93b7b22735b373ad187551adef3eba15bc2e016513e0d35d3f95e09b185162407a7370f45fa7101766bcc6e58d18053b0fccdfc8e321d"
+          "content": "5993bcca4449a56184f4c1ee669cb596ede7265b8fa1e07e7c82499f909667d6135613435a8085e22ffb9f1cf59edba520d60643c555b8253d2c3f3a31e93dee"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "bom-ref": "@node-rs/jieba-linux-x64-musl@1.10.4",
+      "type": "library",
+      "name": "@node-rs/jieba-linux-x64-musl",
+      "version": "1.10.4",
+      "scope": "optional",
+      "author": "LongYinan",
+      "description": "Fastest Chinese word segmentation in Node.js",
+      "purl": "pkg:npm/%40node-rs/jieba-linux-x64-musl@1.10.4",
+      "properties": [
+        {
+          "name": "cdx:npm:package:path",
+          "value": "node_modules/@node-rs/jieba-linux-x64-musl"
+        }
+      ],
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/@node-rs/jieba-linux-x64-musl/-/jieba-linux-x64-musl-1.10.4.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "git+https://github.com/napi-rs/node-rs.git"
+        },
+        {
+          "type": "website",
+          "url": "https://github.com/napi-rs/node-rs"
+        },
+        {
+          "type": "issue-tracker",
+          "url": "https://github.com/napi-rs/node-rs/issues"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "b81043e12d6b18a7200b2024e9508a6ad11541be840c3e48e34bff0f13838b90ae655080362f66e6879efcc41b028697ed1c9d0367f4392084f7fb5cc1713052"
         }
       ],
       "licenses": [
@@ -12666,23 +12713,23 @@
       ]
     },
     {
-      "bom-ref": "@parcel/watcher-win32-x64@2.6.0",
+      "bom-ref": "@parcel/watcher-linux-x64-glibc@2.6.0",
       "type": "library",
-      "name": "@parcel/watcher-win32-x64",
+      "name": "@parcel/watcher-linux-x64-glibc",
       "version": "2.6.0",
       "scope": "optional",
       "description": "A native C++ Node module for querying and subscribing to filesystem events. Used by Parcel 2.",
-      "purl": "pkg:npm/%40parcel/watcher-win32-x64@2.6.0",
+      "purl": "pkg:npm/%40parcel/watcher-linux-x64-glibc@2.6.0",
       "properties": [
         {
           "name": "cdx:npm:package:path",
-          "value": "node_modules/@parcel/watcher-win32-x64"
+          "value": "node_modules/@parcel/watcher-linux-x64-glibc"
         }
       ],
       "externalReferences": [
         {
           "type": "distribution",
-          "url": "https://registry.npmjs.org/@parcel/watcher-win32-x64/-/watcher-win32-x64-2.6.0.tgz"
+          "url": "https://registry.npmjs.org/@parcel/watcher-linux-x64-glibc/-/watcher-linux-x64-glibc-2.6.0.tgz"
         },
         {
           "type": "vcs",
@@ -12700,7 +12747,53 @@
       "hashes": [
         {
           "alg": "SHA-512",
-          "content": "700fbfa575766247f1948717390e5f496a80cf33f20fbf3fc79a9b2bf234bd492b9581c0f13233f8c5e301b1a8ba0b8a5522386ce9a44d2275fe9a154ac82df8"
+          "content": "ba5184eb1e8ecfa880c20ef94fc6104a882e0566ac9e221b5fe416a5a60f7029c33a97565f793ee316c460f6552f13aea0923eb2f2493c3dec123f06ee5ad0dc"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "id": "MIT"
+          }
+        }
+      ]
+    },
+    {
+      "bom-ref": "@parcel/watcher-linux-x64-musl@2.6.0",
+      "type": "library",
+      "name": "@parcel/watcher-linux-x64-musl",
+      "version": "2.6.0",
+      "scope": "optional",
+      "description": "A native C++ Node module for querying and subscribing to filesystem events. Used by Parcel 2.",
+      "purl": "pkg:npm/%40parcel/watcher-linux-x64-musl@2.6.0",
+      "properties": [
+        {
+          "name": "cdx:npm:package:path",
+          "value": "node_modules/@parcel/watcher-linux-x64-musl"
+        }
+      ],
+      "externalReferences": [
+        {
+          "type": "distribution",
+          "url": "https://registry.npmjs.org/@parcel/watcher-linux-x64-musl/-/watcher-linux-x64-musl-2.6.0.tgz"
+        },
+        {
+          "type": "vcs",
+          "url": "git+https://github.com/parcel-bundler/watcher.git"
+        },
+        {
+          "type": "website",
+          "url": "https://github.com/parcel-bundler/watcher#readme"
+        },
+        {
+          "type": "issue-tracker",
+          "url": "https://github.com/parcel-bundler/watcher/issues"
+        }
+      ],
+      "hashes": [
+        {
+          "alg": "SHA-512",
+          "content": "b640582aded842b8c82566039eda366203bc31192394c4d2368447cec5e29c1a9b2dd78e3372f7db03d926f219c6a68b31f4a54bfe2c5231ffe924d53ff5c32f"
         }
       ],
       "licenses": [
@@ -62993,11 +63086,16 @@
     {
       "ref": "@node-rs/jieba@1.10.4",
       "dependsOn": [
-        "@node-rs/jieba-win32-x64-msvc@1.10.4"
+        "@node-rs/jieba-linux-x64-gnu@1.10.4",
+        "@node-rs/jieba-linux-x64-musl@1.10.4"
       ]
     },
     {
-      "ref": "@node-rs/jieba-win32-x64-msvc@1.10.4",
+      "ref": "@node-rs/jieba-linux-x64-gnu@1.10.4",
+      "dependsOn": []
+    },
+    {
+      "ref": "@node-rs/jieba-linux-x64-musl@1.10.4",
       "dependsOn": []
     },
     {
@@ -63005,11 +63103,16 @@
       "dependsOn": [
         "node-addon-api@7.1.1",
         "picomatch@4.0.7",
-        "@parcel/watcher-win32-x64@2.6.0"
+        "@parcel/watcher-linux-x64-glibc@2.6.0",
+        "@parcel/watcher-linux-x64-musl@2.6.0"
       ]
     },
     {
-      "ref": "@parcel/watcher-win32-x64@2.6.0",
+      "ref": "@parcel/watcher-linux-x64-glibc@2.6.0",
+      "dependsOn": []
+    },
+    {
+      "ref": "@parcel/watcher-linux-x64-musl@2.6.0",
       "dependsOn": []
     },
     {
